@@ -133,96 +133,12 @@ body {
   margin-bottom: 0;
 }
 
-/* Compact Player Search */
-.player-search-compact {
-  background: var(--bg-input);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-lg);
-  border: var(--border-width) solid var(--border-secondary);
-  min-width: 320px;
-}
-
-.compact-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.compact-input-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.input-compact, .select-compact {
-  background: var(--bg-primary);
-  border: var(--border-width) solid var(--border-secondary);
-  border-radius: var(--border-radius-sm);
-  padding: 0 var(--spacing-sm);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  flex: 1;
-  min-width: 80px;
-  height: 32px;
-  line-height: 30px; /* Account for border to center text vertically */
-}
-
-.input-compact:focus, .select-compact:focus {
-  outline: none;
-  border-color: var(--border-accent);
-}
-
-.hashtag-compact {
-  color: var(--primary-gold);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-lg);
-}
-
-.btn-compact {
-  background: var(--primary-teal) !important;
-  color: white !important;
-  border: none !important;
-  padding: 0 !important;
-  border-radius: var(--border-radius-sm);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  max-width: 32px !important;
-  max-height: 32px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: none !important;
-  background-image: none !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  flex-shrink: 0 !important;
-}
-
-.btn-compact:hover:not(:disabled) {
-  background: var(--primary-gold) !important;
-}
-
-.btn-compact svg {
-  color: white !important;
-  fill: white !important;
-}
-
-.btn-compact:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .profile-compact {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-sm);
-  background: var(--bg-primary);
+  background: var(--bg-input);
   border-radius: var(--border-radius-md);
   border: var(--border-width) solid var(--primary-teal);
   animation: slideDown 0.3s ease-out;
@@ -594,27 +510,6 @@ body {
     text-align: center;
   }
   
-  .player-search-compact {
-    min-width: auto;
-  }
-  
-  .compact-input-row {
-    flex-wrap: wrap;
-  }
-  
-  .input-compact, .select-compact {
-    min-width: 100px;
-  }
-  
-  .input-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .hashtag {
-    display: none;
-  }
-  
   .section {
     padding: var(--spacing-xl);
   }
@@ -868,6 +763,83 @@ body {
   font-style: italic;
 }
 
+/* Full-width Header Layout */
+.full-width-header {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: var(--spacing-4xl);
+}
+
+.header-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--spacing-3xl);
+}
+
+.tabs-container {
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+}
+
+/* Mantine Header Tabs Styling - Corrected based on example */
+.mantine-header-tabs {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.mantine-header-tabs .mantine-Tabs-list {
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.mantine-header-tabs .mantine-Tabs-list::before {
+  display: none;
+}
+
+.mantine-header-tabs .mantine-Tabs-tab {
+  font-weight: 500;
+  height: 38px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* Aligns the active tab's bottom border with the list's bottom border */
+  transition: background-color 150ms ease, color 150ms ease;
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
+}
+
+/* This is the key to removing the purple outline on click/focus */
+.mantine-header-tabs .mantine-Tabs-tab:focus {
+  outline: none;
+}
+
+.mantine-header-tabs .mantine-Tabs-tab:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.mantine-header-tabs .mantine-Tabs-tab[data-active] {
+  background-color: transparent;
+  color: var(--primary-teal);
+  border-bottom-color: var(--primary-teal);
+  font-weight: 600;
+}
+
+.mantine-header-tabs .mantine-Tabs-tab[data-active]:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Icon alignment in tabs */
+.mantine-header-tabs [data-tabs-tab] svg {
+  margin-right: var(--spacing-sm);
+}
+
 /* Responsive Match History */
 @media (max-width: 768px) {
   .match-details {
@@ -893,6 +865,17 @@ body {
   
   .theme-select {
     max-width: 100%;
+  }
+  
+  /* Responsive tabs */
+  .mantine-header-tabs [data-tabs-list] {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+  
+  .mantine-header-tabs [data-tabs-tab] {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
 }
 

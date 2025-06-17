@@ -1,5 +1,5 @@
 import { Modal, Text, Stack, Group, Badge } from '@mantine/core'
-import { IconTrophy, IconClock, IconUsers } from '@tabler/icons-react'
+import { IconTrophy, IconClock, IconHistory } from '@tabler/icons-react'
 
 interface GameDetailsModalProps {
   isOpen: boolean;
@@ -47,17 +47,12 @@ interface MatchHistoryItem {
 }
 
 export default function GameDetailsModal({ isOpen, onClose, match, currentPlayerPuuid }: GameDetailsModalProps) {
-  console.log('🔍 GameDetailsModal Render - isOpen:', isOpen, 'hasMatch:', !!match, 'currentPlayerPuuid:', currentPlayerPuuid);
-
-  if (!match) {
-    console.log('❌ No match data provided to modal');
+  // Only render if modal is open and has match data
+  if (!isOpen || !match) {
     return null;
   }
 
-  // Debug: Log player data structure to see available fields
-  if (match.info.participants.length > 0) {
-    console.log('🔍 Sample player data structure:', match.info.participants[0]);
-  }
+
 
   const formatGameDuration = (duration: number) => {
     const minutes = Math.floor(duration / 60);
@@ -101,6 +96,20 @@ export default function GameDetailsModal({ isOpen, onClose, match, currentPlayer
     return participant.riotIdGameName || participant.summonerName;
   };
 
+  const formatTimeAgo = (gameCreation: number) => {
+    const now = Date.now();
+    const gameTime = gameCreation;
+    const diffInMs = now - gameTime;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    
+    if (diffInHours < 2) {
+      return `${diffInMinutes} min ago`;
+    } else {
+      return `${diffInHours}h ago`;
+    }
+  };
+
   // Separate teams
   const team1 = match.info.participants.filter(p => p.teamId === 100);
   const team2 = match.info.participants.filter(p => p.teamId === 200);
@@ -108,15 +117,12 @@ export default function GameDetailsModal({ isOpen, onClose, match, currentPlayer
   const team1Won = team1[0]?.win || false;
   const currentPlayer = match.info.participants.find(p => p.puuid === currentPlayerPuuid);
 
-  console.log('✅ About to render Full Modal - isOpen:', isOpen);
+
 
   return (
     <Modal
       opened={isOpen}
-      onClose={() => {
-        console.log('🔄 Game Details Modal closing...');
-        onClose();
-      }}
+      onClose={onClose}
       title={
         <Group gap="xs">
           <IconTrophy size={24} style={{ color: 'var(--primary-gold)' }} />
@@ -181,9 +187,9 @@ export default function GameDetailsModal({ isOpen, onClose, match, currentPlayer
               </Text>
             </Group>
             <Group gap={4}>
-              <IconUsers size={16} style={{ color: 'var(--text-secondary)' }} />
+              <IconHistory size={16} style={{ color: 'var(--text-secondary)' }} />
               <Text size="sm" style={{ color: 'var(--text-primary)' }}>
-                {match.info.participants.length} players
+                {formatTimeAgo(match.info.gameCreation)}
               </Text>
             </Group>
           </Group>
@@ -602,7 +608,7 @@ export default function GameDetailsModal({ isOpen, onClose, match, currentPlayer
             Match ID: {match.metadata.matchId}
           </Text>
           <Text size="xs" style={{ color: 'var(--text-secondary)' }}>
-            {new Date(match.info.gameCreation).toLocaleString()}
+            {formatTimeAgo(match.info.gameCreation)}
           </Text>
         </Group>
       </Stack>

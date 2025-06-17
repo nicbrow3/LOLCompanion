@@ -1,21 +1,15 @@
-export interface BaseTheme {
-  name: string;
-  baseColors: {
-    primary: string;    // Main brand color
-    secondary: string;  // Secondary brand color  
-    accent: string;     // Accent/highlight color
-    success: string;    // Success/positive color
-    error: string;      // Error/negative color
-    neutral: string;    // Neutral/text color
-  };
-}
+import { createTheme, type MantineColorsTuple } from '@mantine/core';
 
-export interface Theme {
+// Theme system that works with Mantine and provides base neutral themes + accent color selection
+
+export interface BaseNeutralTheme {
   name: string;
+  isDark: boolean;
   colors: {
     // Background colors
     'bg-primary': string;
     'bg-secondary': string;
+    'bg-tertiary': string;
     'bg-card': string;
     'bg-input': string;
     
@@ -24,160 +18,280 @@ export interface Theme {
     'text-secondary': string;
     'text-muted': string;
     
-    // Brand colors
-    'primary-gold': string;
-    'primary-blue': string;
-    'primary-teal': string;
-    'primary-green': string;
-    'primary-red': string;
-    
-    // UI colors
+    // Border colors
     'border-primary': string;
     'border-secondary': string;
-    'border-accent': string;
   };
 }
 
-// Utility functions to generate lighter/darker shades
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-function lightenColor(color: string, percentage: number): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return color;
-  
-  const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * percentage));
-  const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * percentage));
-  const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * percentage));
-  
-  return rgbToHex(r, g, b);
-}
-
-function darkenColor(color: string, percentage: number): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return color;
-  
-  const r = Math.max(0, Math.round(rgb.r * (1 - percentage)));
-  const g = Math.max(0, Math.round(rgb.g * (1 - percentage)));
-  const b = Math.max(0, Math.round(rgb.b * (1 - percentage)));
-  
-  return rgbToHex(r, g, b);
-}
-
-// Generate a complete theme from base colors
-function generateTheme(baseTheme: BaseTheme): Theme {
-  const { primary, secondary, accent, success, error, neutral } = baseTheme.baseColors;
-  
-  const isDark = hexToRgb(neutral)!.r < 128; // Determine if theme is dark or light
-  
-  return {
-    name: baseTheme.name,
-    colors: {
-      // Background colors - improved contrast
-      'bg-primary': isDark ? darkenColor(neutral, 0.6) : lightenColor(neutral, 0.95),
-      'bg-secondary': isDark ? darkenColor(neutral, 0.4) : lightenColor(neutral, 0.85),
-      'bg-card': isDark ? lightenColor(neutral, 0.15) : darkenColor(neutral, 0.05),
-      'bg-input': isDark ? lightenColor(neutral, 0.25) : darkenColor(neutral, 0.1),
-      
-      // Text colors
-      'text-primary': isDark ? lightenColor(neutral, 0.8) : darkenColor(neutral, 0.9),
-      'text-secondary': isDark ? lightenColor(neutral, 0.6) : darkenColor(neutral, 0.7),
-      'text-muted': isDark ? lightenColor(neutral, 0.4) : darkenColor(neutral, 0.5),
-      
-      // Brand colors
-      'primary-gold': primary,
-      'primary-blue': secondary,
-      'primary-teal': accent,
-      'primary-green': success,
-      'primary-red': error,
-      
-      // UI colors - better contrast
-      'border-primary': isDark ? lightenColor(neutral, 0.4) : darkenColor(neutral, 0.2),
-      'border-secondary': isDark ? darkenColor(primary, 0.3) : darkenColor(primary, 0.2),
-      'border-accent': isDark ? darkenColor(accent, 0.2) : darkenColor(accent, 0.3)
-    }
+export interface AccentColorPalette {
+  name: string;
+  colors: {
+    primary: string;     // Main accent color
+    secondary: string;   // Secondary accent
+    success: string;     // Success/positive
+    warning: string;     // Warning/caution  
+    error: string;       // Error/negative
+    info: string;        // Information/neutral accent
   };
 }
 
-// Base theme definitions with 6 colors each
-export const baseThemes: Record<string, BaseTheme> = {
-  league: {
-    name: 'League of Legends',
-    baseColors: {
-      primary: '#C89B3C',   // Gold
-      secondary: '#0596AA', // Blue
-      accent: '#0BC5EA',    // Teal
-      success: '#00C851',   // Green
-      error: '#FF3D57',     // Red
-      neutral: '#1E2328'    // Dark base
-    }
-  },
-  
+export interface CombinedTheme extends BaseNeutralTheme {
+  accentPalette: AccentColorPalette;
+  // Include accent colors for easy access
+  'primary-color': string;
+  'secondary-color': string;
+  'success-color': string;
+  'warning-color': string;
+  'error-color': string;
+  'info-color': string;
+}
+
+// Base neutral themes - just greys, whites, blacks
+export const baseNeutralThemes: Record<string, BaseNeutralTheme> = {
   dark: {
-    name: 'Dark Minimal',
-    baseColors: {
-      primary: '#E6C560',   // Softer gold
-      secondary: '#007ACC', // Blue
-      accent: '#20B2AA',    // Teal
-      success: '#28A745',   // Green
-      error: '#DC3545',     // Red
-      neutral: '#2A2A2A'    // Lighter dark base
+    name: 'Dark',
+    isDark: true,
+    colors: {
+      // Dark theme backgrounds
+      'bg-primary': '#0a0a0a',      // Darkest - main background
+      'bg-secondary': '#1a1a1a',    // Secondary backgrounds
+      'bg-tertiary': '#2a2a2a',     // Cards, elevated content
+      'bg-card': 'rgba(42, 42, 42, 0.8)',
+      'bg-input': 'rgba(60, 60, 60, 0.8)',
+      
+      // Dark theme text
+      'text-primary': '#ffffff',     // Primary text
+      'text-secondary': '#d0d0d0',   // Secondary text
+      'text-muted': '#a0a0a0',       // Muted text
+      
+      // Dark theme borders
+      'border-primary': '#3a3a3a',   // Primary borders
+      'border-secondary': '#4a4a4a', // Secondary borders
     }
   },
   
   light: {
-    name: 'Light Minimal',
-    baseColors: {
-      primary: '#EA8600',   // Orange
-      secondary: '#1A73E8', // Blue
-      accent: '#0D7377',    // Teal
-      success: '#137333',   // Green
-      error: '#D93025',     // Red
-      neutral: '#F8F9FA'    // Light base
+    name: 'Light',
+    isDark: false,
+    colors: {
+      // Light theme backgrounds
+      'bg-primary': '#ffffff',      // Lightest - main background
+      'bg-secondary': '#f8f9fa',    // Secondary backgrounds
+      'bg-tertiary': '#e9ecef',     // Cards, elevated content
+      'bg-card': 'rgba(233, 236, 239, 0.8)',
+      'bg-input': 'rgba(248, 249, 250, 0.8)',
+      
+      // Light theme text
+      'text-primary': '#212529',     // Primary text
+      'text-secondary': '#495057',   // Secondary text
+      'text-muted': '#6c757d',       // Muted text
+      
+      // Light theme borders
+      'border-primary': '#dee2e6',   // Primary borders
+      'border-secondary': '#adb5bd', // Secondary borders
+    }
+  }
+};
+
+// Accent color palettes - these can be mixed with any base theme
+export const accentColorPalettes: Record<string, AccentColorPalette> = {
+  league: {
+    name: 'League',
+    colors: {
+      primary: '#C89B3C',   // Gold
+      secondary: '#0596AA', // Blue
+      success: '#00C851',   // Green
+      warning: '#F39C12',   // Orange
+      error: '#FF3D57',     // Red
+      info: '#0BC5EA',      // Teal
     }
   },
   
   ocean: {
     name: 'Ocean Blue',
-    baseColors: {
-      primary: '#FFC107',   // Amber
-      secondary: '#29B6F6', // Light Blue
-      accent: '#26A69A',    // Teal
-      success: '#66BB6A',   // Light Green
-      error: '#EF5350',     // Light Red
-      neutral: '#132F4C'    // Dark Blue base
+    colors: {
+      primary: '#1976D2',   // Blue
+      secondary: '#0288D1', // Light Blue
+      success: '#388E3C',   // Green
+      warning: '#F57C00',   // Orange
+      error: '#D32F2F',     // Red
+      info: '#00ACC1',      // Cyan
     }
   },
   
   forest: {
     name: 'Forest Green',
-    baseColors: {
-      primary: '#FFC107',   // Amber
-      secondary: '#42A5F5', // Blue
-      accent: '#4CAF50',    // Green
-      success: '#81C784',   // Light Green
-      error: '#E57373',     // Light Red
-      neutral: '#1A2E1A'    // Dark Green base
+    colors: {
+      primary: '#388E3C',   // Green
+      secondary: '#689F38', // Light Green
+      success: '#4CAF50',   // Success Green
+      warning: '#FF8F00',   // Amber
+      error: '#D32F2F',     // Red
+      info: '#00796B',      // Teal
+    }
+  },
+  
+  sunset: {
+    name: 'Sunset Orange',
+    colors: {
+      primary: '#FF6F00',   // Orange
+      secondary: '#FF8F00', // Light Orange
+      success: '#4CAF50',   // Green
+      warning: '#FFC107',   // Yellow
+      error: '#D32F2F',     // Red
+      info: '#7B1FA2',      // Purple
+    }
+  },
+  
+  royal: {
+    name: 'Royal Purple',
+    colors: {
+      primary: '#7B1FA2',   // Purple
+      secondary: '#8E24AA', // Light Purple
+      success: '#4CAF50',   // Green
+      warning: '#FF8F00',   // Orange
+      error: '#D32F2F',     // Red
+      info: '#1976D2',      // Blue
+    }
+  },
+  
+  minimal: {
+    name: 'Minimal Grey',
+    colors: {
+      primary: '#757575',   // Lighter Grey for better contrast in dark mode
+      secondary: '#9E9E9E', // Even lighter Medium Grey
+      success: '#4CAF50',   // Green
+      warning: '#FF9800',   // Orange
+      error: '#F44336',     // Red
+      info: '#2196F3',      // Blue
     }
   }
 };
 
-// Generate complete themes from base themes
-export const themes: Record<string, Theme> = Object.fromEntries(
-  Object.entries(baseThemes).map(([key, baseTheme]) => [
-    key,
-    generateTheme(baseTheme)
-  ])
-);
+// Generate a combined theme from base + accent
+export function createCombinedTheme(
+  baseKey: string, 
+  accentKey: string
+): CombinedTheme {
+  const baseTheme = baseNeutralThemes[baseKey];
+  const accentPalette = accentColorPalettes[accentKey];
+  
+  if (!baseTheme || !accentPalette) {
+    throw new Error(`Invalid theme combination: ${baseKey} + ${accentKey}`);
+  }
+  
+  return {
+    ...baseTheme,
+    name: `${baseTheme.name} + ${accentPalette.name}`,
+    accentPalette,
+    'primary-color': accentPalette.colors.primary,
+    'secondary-color': accentPalette.colors.secondary,
+    'success-color': accentPalette.colors.success,
+    'warning-color': accentPalette.colors.warning,
+    'error-color': accentPalette.colors.error,
+    'info-color': accentPalette.colors.info,
+  };
+}
 
-export const defaultTheme = 'league'; 
+// Default theme combinations for backwards compatibility and convenience
+export const presetThemes: Record<string, CombinedTheme> = {
+  'dark-league': createCombinedTheme('dark', 'league'),
+  'light-league': createCombinedTheme('light', 'league'),
+  'dark-ocean': createCombinedTheme('dark', 'ocean'),
+  'light-ocean': createCombinedTheme('light', 'ocean'),
+  'dark-forest': createCombinedTheme('dark', 'forest'),
+  'light-forest': createCombinedTheme('light', 'forest'),
+  'dark-sunset': createCombinedTheme('dark', 'sunset'),
+  'light-sunset': createCombinedTheme('light', 'sunset'),
+  'dark-royal': createCombinedTheme('dark', 'royal'),
+  'light-royal': createCombinedTheme('light', 'royal'),
+  'dark-minimal': createCombinedTheme('dark', 'minimal'),
+  'light-minimal': createCombinedTheme('light', 'minimal'),
+};
+
+export const defaultTheme = 'dark-league';
+
+// Legacy compatibility - map old theme names to new structure
+export const themes = presetThemes;
+export const baseThemes = {
+  league: { name: 'League of Legends', baseColors: accentColorPalettes.league.colors }
+};
+
+// Apply theme to CSS custom properties and create Mantine theme override
+export function applyTheme(theme: CombinedTheme) {
+  const root = document.documentElement;
+  
+  // Apply base colors
+  Object.entries(theme.colors).forEach(([property, value]) => {
+    root.style.setProperty(`--${property}`, value);
+  });
+  
+  // Apply accent colors with multiple naming conventions for compatibility
+  const accentColors = theme.accentPalette.colors;
+  
+  // New naming convention
+  root.style.setProperty('--primary-color', accentColors.primary);
+  root.style.setProperty('--secondary-color', accentColors.secondary);
+  root.style.setProperty('--success-color', accentColors.success);
+  root.style.setProperty('--warning-color', accentColors.warning);
+  root.style.setProperty('--error-color', accentColors.error);
+  root.style.setProperty('--info-color', accentColors.info);
+  
+  // Legacy naming for backwards compatibility
+  root.style.setProperty('--primary-gold', accentColors.primary);
+  root.style.setProperty('--primary-blue', accentColors.secondary);
+  root.style.setProperty('--primary-teal', accentColors.info);
+  root.style.setProperty('--primary-green', accentColors.success);
+  root.style.setProperty('--primary-red', accentColors.error);
+  
+  // Border accent colors
+  root.style.setProperty('--border-accent', accentColors.primary);
+  
+  return {
+    primaryColor: accentColors.primary,
+    colors: {
+      primary: [
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+        accentColors.primary,
+      ],
+    },
+    defaultRadius: 'md',
+    focusRing: 'auto',
+    colorScheme: theme.isDark ? 'dark' : 'light',
+  };
+}
+
+// Create a Mantine-compatible theme object from our combined theme
+export function createMantineTheme(theme: CombinedTheme) {
+  // A simple way to generate a tuple for the primary color.
+  // This is a naive implementation. For a real app, you might want a more
+  // sophisticated way to generate shades.
+  const primaryTuple: MantineColorsTuple = [
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+    theme.accentPalette.colors.primary,
+  ];
+
+  return createTheme({
+    primaryColor: 'primary',
+    colors: {
+      primary: primaryTuple,
+    },
+  });
+} 

@@ -1,4 +1,4 @@
-# League of Legends Companion
+# Yordle Hub
 
 A web application that provides real-time information about League of Legends games and player profiles using the Riot Games API.
 

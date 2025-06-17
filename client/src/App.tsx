@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { themes, defaultTheme, baseThemes } from './themes'
+import { 
+  createCombinedTheme, 
+  applyTheme,
+  createMantineTheme
+} from './themes'
 import { motion, AnimatePresence } from 'motion/react'
-import { Modal, Button, Text } from '@mantine/core'
+import { Modal, Button, Text, Tabs, Group, Title, Flex, MantineProvider } from '@mantine/core'
 import GameDetailsModal from './GameDetailsModal'
+import SettingsTab from './SettingsTab'
+import { PlayerSearch } from './PlayerSearch'
 import { 
   IconDeviceGamepad2, 
-  IconSearch, 
   IconSettings, 
   IconLoader,
   IconEye, 
@@ -14,19 +19,10 @@ import {
   IconCheck, 
   IconX, 
   IconAlertTriangle,
-  IconPalette,
-  IconTool,
-  IconInfoCircle,
-  IconRefresh,
-  IconSparkles
+  IconRefresh
 } from '@tabler/icons-react'
 
-interface DebugResponse {
-  hasApiKey: boolean;
-  apiKeyLength: number;
-  port: string;
-  nodeEnv?: string;
-}
+
 
 interface ProfileData {
   account: {
@@ -90,8 +86,13 @@ interface MatchHistoryItem {
 
 function App() {
   const [activeTab, setActiveTab] = useState<'matches' | 'livegame' | 'settings'>('matches');
-  const [currentTheme, setCurrentTheme] = useState<string>(defaultTheme);
-  const [debugResult, setDebugResult] = useState<DebugResponse | null>(null);
+  const [currentBaseTheme, setCurrentBaseTheme] = useState<string>(() => 
+    localStorage.getItem('lol-companion-base-theme') || 'dark'
+  );
+  const [currentAccentPalette, setCurrentAccentPalette] = useState<string>(() => 
+    localStorage.getItem('lol-companion-accent-palette') || 'league'
+  );
+
   const [profileResult, setProfileResult] = useState<ProfileData | null>(null);
   const [liveGameResult, setLiveGameResult] = useState<LiveGameData | null>(null);
   const [matchHistory, setMatchHistory] = useState<MatchHistoryItem[]>([]);
@@ -110,6 +111,20 @@ function App() {
   // Test modal state
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
 
+  const regionToCountryCode: { [key: string]: string } = {
+    'NA1': 'us',
+    'EUW': 'eu', 
+    'EUNE': 'eu',
+    'KR': 'kr',
+    'BR1': 'br',
+    'LAN': 'mx',
+    'LAS': 'ar',
+    'OCE': 'au',
+    'TR': 'tr',
+    'RU': 'ru',
+    'JP': 'jp'
+  };
+
   // Common tagLine options that match regions
   const tagLineOptions = [
     { value: 'NA1', label: 'NA1 - North America' },
@@ -123,7 +138,10 @@ function App() {
     { value: 'TR', label: 'TR - Turkey' },
     { value: 'RU', label: 'RU - Russia' },
     { value: 'JP', label: 'JP - Japan' }
-  ];
+  ].map(option => ({
+    ...option,
+    image: `https://flagicons.lipis.dev/flags/4x3/${regionToCountryCode[option.value]}.svg`
+  }));
 
   // Auto-update region when tagLine changes
   const handleTagLineChange = (newTagLine: string) => {
@@ -159,23 +177,14 @@ function App() {
 
   const API_BASE = 'http://localhost:4000/api';
 
-  // Apply theme to CSS custom properties
-  const applyTheme = (themeKey: string) => {
-    const theme = themes[themeKey];
-    if (!theme) return;
-    
-    const root = document.documentElement;
-    Object.entries(theme.colors).forEach(([property, value]) => {
-      root.style.setProperty(`--${property}`, value);
-    });
-  };
+  // Create current combined theme
+  const currentCombinedTheme = createCombinedTheme(currentBaseTheme, currentAccentPalette);
+  const mantineTheme = createMantineTheme(currentCombinedTheme);
 
-  // Load saved theme or apply default theme on mount
+  // Load and apply theme on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('lol-companion-theme') || defaultTheme;
-    setCurrentTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
+    applyTheme(currentCombinedTheme);
+  }, [currentCombinedTheme]);
 
   // Auto-search on page load if user info is filled
   useEffect(() => {
@@ -207,27 +216,19 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileResult?.account?.puuid, activeTab]);
 
-  // Handle theme change
-  const handleThemeChange = (themeKey: string) => {
-    setCurrentTheme(themeKey);
-    applyTheme(themeKey);
-    localStorage.setItem('lol-companion-theme', themeKey);
+  // Handle base theme change
+  const handleBaseThemeChange = (baseThemeKey: string) => {
+    setCurrentBaseTheme(baseThemeKey);
+    localStorage.setItem('lol-companion-base-theme', baseThemeKey);
   };
 
-  const testDebugAPI = async () => {
-    setLoading('debug');
-    setError(null);
-    try {
-      const response = await fetch(`${API_BASE}/debug`);
-      if (!response.ok) throw new Error('Failed to fetch debug info');
-      const data = await response.json();
-      setDebugResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(null);
-    }
+  // Handle accent palette change
+  const handleAccentPaletteChange = (accentKey: string) => {
+    setCurrentAccentPalette(accentKey);
+    localStorage.setItem('lol-companion-accent-palette', accentKey);
   };
+
+
 
   const testProfileAPI = async () => {
     setLoading('profile');
@@ -382,127 +383,81 @@ function App() {
 
   // Modal handlers
   const handleMatchClick = (match: MatchHistoryItem) => {
-    console.log('🎯 Match clicked:', {
-      matchId: match.metadata.matchId,
-      currentModalState: isModalOpen,
-      selectedMatch: selectedMatch?.metadata?.matchId
-    });
     setSelectedMatch(match);
     setIsModalOpen(true);
-    console.log('📖 Modal state after click:', {
-      willBeOpen: true,
-      matchSet: !!match
-    });
   };
 
   const handleCloseModal = () => {
-    console.log('❌ Closing modal...');
     setIsModalOpen(false);
     setSelectedMatch(null);
   };
 
   return (
-    <>
-      <div className="app">
-        <div className="header">
-          <div className="header-main">
-            <div className="header-content">
-              <h1><IconDeviceGamepad2 size={40} style={{ display: 'inline', marginRight: '12px' }} />League of Legends Companion</h1>
-            </div>
-          
-          {/* Compact Player Search */}
-          <div className="player-search-compact">
-            <div className="compact-form">
-              <div className="compact-input-row">
-                <input
-                  type="text"
-                  placeholder="Game Name"
-                  value={gameName}
-                  onChange={(e) => handleGameNameChange(e.target.value)}
-                  className="input-compact"
+    <MantineProvider theme={mantineTheme} defaultColorScheme={currentCombinedTheme.isDark ? 'dark' : 'light'}>
+      {/* Full-width Header */}
+      <div className="full-width-header">
+        <div className="header-container">
+          <Flex justify="space-between" align="center" mb="lg">
+            <Group align="center">
+              <IconDeviceGamepad2 size={40} style={{ color: 'var(--primary-gold)' }} />
+              <Title order={1} size="h1" style={{ color: 'var(--primary-gold)', margin: 0 }}>
+                League of Legends Companion
+              </Title>
+            </Group>
+            
+            <Group>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <PlayerSearch
+                  gameName={gameName}
+                  tagLine={tagLine}
+                  onGameNameChange={handleGameNameChange}
+                  onTagLineChange={handleTagLineChange}
+                  onSearch={testProfileAPI}
+                  loading={loading === 'profile'}
+                  tagLineOptions={tagLineOptions}
                 />
-                <span className="hashtag-compact">#</span>
-                <select
-                  value={tagLine}
-                  onChange={(e) => handleTagLineChange(e.target.value)}
-                  className="select-compact"
-                >
-                  {tagLineOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.value}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  onClick={testProfileAPI} 
-                  disabled={loading === 'profile' || !gameName || !tagLine}
-                  className="btn btn-compact"
-                >
-                  <AnimatePresence mode="wait">
-                    {loading === 'profile' ? (
-                      <motion.div
-                        key="loading"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <IconLoader size={16} className="spinning" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="search"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <IconSearch size={16} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
+                {profileResult && (
+                    <div className="profile-compact">
+                      <img 
+                        src={`https://ddragon.leagueoflegends.com/cdn/15.12.1/img/profileicon/${profileResult.summoner.profileIconId}.png`}
+                        alt="Profile Icon"
+                        className="profile-icon-compact"
+                      />
+                      <div className="profile-text-compact">
+                        <strong>{profileResult.account.gameName}#{profileResult.account.tagLine}</strong>
+                        <span>Level {profileResult.summoner.summonerLevel}</span>
+                      </div>
+                    </div>
+                  )}
               </div>
-              
-              {profileResult && (
-                <div className="profile-compact">
-                  <img 
-                    src={`https://ddragon.leagueoflegends.com/cdn/15.12.1/img/profileicon/${profileResult.summoner.profileIconId}.png`}
-                    alt="Profile Icon"
-                    className="profile-icon-compact"
-                  />
-                  <div className="profile-text-compact">
-                    <strong>{profileResult.account.gameName}#{profileResult.account.tagLine}</strong>
-                    <span>Level {profileResult.summoner.summonerLevel}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            </Group>
+          </Flex>
         </div>
         
-        {/* Tab Navigation */}
-        <div className="tab-nav">
-          <button 
-            className={`tab-btn ${activeTab === 'matches' ? 'active' : ''}`}
-            onClick={() => setActiveTab('matches')}
+        {/* Full-width Tabs */}
+        <div className="tabs-container">
+          <Tabs 
+            value={activeTab} 
+            onChange={(value) => setActiveTab(value as 'matches' | 'livegame' | 'settings')}
+            variant="outline"
+            className="mantine-header-tabs"
           >
-            <IconHistory size={18} style={{ marginRight: '8px' }} />Match History
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'livegame' ? 'active' : ''}`}
-            onClick={() => setActiveTab('livegame')}
-          >
-            <IconEye size={18} style={{ marginRight: '8px' }} />Live Game
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
-          >
-            <IconSettings size={18} style={{ marginRight: '8px' }} />Settings
-          </button>
+            <Tabs.List>
+              <Tabs.Tab value="matches" leftSection={<IconHistory size={18} />}>
+                Match History
+              </Tabs.Tab>
+              <Tabs.Tab value="livegame" leftSection={<IconEye size={18} />}>
+                Live Game
+              </Tabs.Tab>
+              <Tabs.Tab value="settings" leftSection={<IconSettings size={18} />}>
+                Settings
+              </Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
         </div>
       </div>
+
+      <div className="app">
 
       <div className="container">
         {/* Match History Page */}
@@ -510,7 +465,7 @@ function App() {
           <div className="section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div>
-                <h2 style={{ margin: 0 }}><IconHistory size={24} style={{ marginRight: '8px' }} />Match History</h2>
+                <h2 style={{ margin: 0 }}><IconHistory size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Match History</h2>
                 <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>Recent games load automatically when you search for a player</p>
               </div>
               
@@ -556,7 +511,6 @@ function App() {
 
             {matchHistory.length > 0 && (
               <div className="result success">
-                <h3><IconDeviceGamepad2 size={20} style={{ marginRight: '8px' }} />Recent Games ({matchHistory.length})</h3>
                 <div className="match-list">
                   {matchHistory.map((match) => {
                     // Find the current player's data in the match
@@ -576,7 +530,7 @@ function App() {
                         <div className="match-header">
                           <div className="match-result">
                             <span className={`result-text ${playerData.win ? 'victory' : 'defeat'}`}>
-                              {playerData.win ? <><IconCheck size={16} style={{ marginRight: '6px' }} />Victory</> : <><IconX size={16} style={{ marginRight: '6px' }} />Defeat</>}
+                              {playerData.win ? <><IconCheck size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Victory</> : <><IconX size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Defeat</>}
                             </span>
                             <span className="match-mode">{formatGameMode(match.info.gameMode)}</span>
                           </div>
@@ -656,10 +610,10 @@ function App() {
         {/* Live Game Page */}
         {activeTab === 'livegame' && (
           <div className="section">
-            <h2><IconEye size={24} style={{ marginRight: '8px' }} />Live Game Check</h2>
+            <h2><IconEye size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Live Game Check</h2>
             <p>Check if the player is currently in a live game.</p>
             <div className="form-note">
-              <small><IconAlertTriangle size={16} style={{ marginRight: '6px' }} /><strong>Note:</strong> Live Game API requires production API key. Development keys have limited access to spectator endpoints.</small>
+              <small><IconAlertTriangle size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /><strong>Note:</strong> Live Game API requires production API key. Development keys have limited access to spectator endpoints.</small>
             </div>
             
             <button 
@@ -696,7 +650,7 @@ function App() {
 
             {liveGameResult && (
               <div className="result success">
-                <h3><IconDeviceGamepad2 size={20} style={{ marginRight: '8px' }} />Currently In Game!</h3>
+                <h3><IconDeviceGamepad2 size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Currently In Game!</h3>
                 <div className="live-game-info">
                   <div className="game-details">
                     <p><strong>Game Mode:</strong> {liveGameResult.gameMode}</p>
@@ -723,134 +677,18 @@ function App() {
         )}
 
         {activeTab === 'settings' && (
-          <>
-            {/* Modal Test Section */}
-            <div className="section">
-              <h2><IconTool size={24} style={{ marginRight: '8px' }} />Modal Test</h2>
-              <p>Test if Mantine modals are working correctly.</p>
-              
-              <Button 
-                onClick={() => {
-                  console.log('🧪 Opening test modal...');
-                  setIsTestModalOpen(true);
-                }}
-                color="blue"
-                size="md"
-              >
-                Open Test Modal
-              </Button>
-            </div>
-
-            {/* Theme Selector Section */}
-            <div className="section">
-              <h2><IconPalette size={24} style={{ marginRight: '8px' }} />Theme Settings</h2>
-              <p>Choose your preferred color theme for the application.</p>
-              
-              <div className="theme-selector">
-                <label htmlFor="theme-select" className="theme-label">
-                  <strong>Select Theme:</strong>
-                </label>
-                <select
-                  id="theme-select"
-                  value={currentTheme}
-                  onChange={(e) => handleThemeChange(e.target.value)}
-                  className="select theme-select"
-                >
-                  {Object.entries(themes).map(([key, theme]) => (
-                    <option key={key} value={key}>
-                      {theme.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="theme-preview">
-                <h4>Current Theme: {themes[currentTheme]?.name}</h4>
-                <div className="color-palette">
-                  {Object.entries(baseThemes[currentTheme]?.baseColors || {}).map(([name, color]) => (
-                    <div key={name} className="color-swatch">
-                      <div 
-                        className="color-circle"
-                        style={{ backgroundColor: color }}
-                        title={`${name}: ${color}`}
-                      />
-                      <span className="color-name">{name}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="theme-info">
-                  <small><IconSparkles size={16} style={{ marginRight: '6px' }} />All other colors are automatically generated from these 6 base colors!</small>
-                </div>
-              </div>
-            </div>
-
-            {/* API Debug Section */}
-            <div className="section">
-              <h2><IconTool size={24} style={{ marginRight: '8px' }} />API Debug Test</h2>
-              <p>Test if the backend server is running and configured correctly.</p>
-              
-              <button 
-                onClick={testDebugAPI} 
-                disabled={loading === 'debug'}
-                className="btn btn-primary"
-              >
-                <AnimatePresence mode="wait">
-                  {loading === 'debug' ? (
-                    <motion.div
-                      key="loading"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      style={{ display: 'flex', alignItems: 'center', minWidth: '140px', justifyContent: 'center' }}
-                    >
-                      <IconLoader size={18} className="spinning" style={{ marginRight: '6px' }} />Testing...
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="tool"
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      style={{ display: 'flex', alignItems: 'center', minWidth: '140px', justifyContent: 'center' }}
-                    >
-                      <IconTool size={18} style={{ marginRight: '6px' }} />Test Debug API
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
-
-              {debugResult && (
-                <div className="result success">
-                  <h3><IconCheck size={20} style={{ marginRight: '8px' }} />Server Status:</h3>
-                  <ul>
-                    <li><strong>API Key:</strong> {debugResult.hasApiKey ? <><IconCheck size={16} style={{ marginRight: '6px' }} />Configured</> : <><IconX size={16} style={{ marginRight: '6px' }} />Missing</>}</li>
-                    <li><strong>Key Length:</strong> {debugResult.apiKeyLength} characters</li>
-                    <li><strong>Port:</strong> {debugResult.port}</li>
-                    {debugResult.nodeEnv && <li><strong>Environment:</strong> {debugResult.nodeEnv}</li>}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Info */}
-            <div className="section info">
-              <h2><IconInfoCircle size={24} style={{ marginRight: '8px' }} />Quick Info</h2>
-              <ul>
-                <li><strong>Frontend:</strong> http://localhost:5173</li>
-                <li><strong>Backend API:</strong> http://localhost:4000</li>
-                <li><strong>Uses Modern:</strong> Riot Account-v1 API</li>
-                <li><strong>Features:</strong> PUUID → Summoner lookup</li>
-              </ul>
-            </div>
-          </>
+          <SettingsTab
+            currentBaseTheme={currentBaseTheme}
+            currentAccentPalette={currentAccentPalette}
+            onBaseThemeChange={handleBaseThemeChange}
+            onAccentPaletteChange={handleAccentPaletteChange}
+          />
         )}
 
         {/* Error Display - shows on all pages */}
         {error && (
           <div className="result error">
-            <h3><IconX size={20} style={{ marginRight: '8px' }} />Error:</h3>
+            <h3><IconX size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Error:</h3>
             <p>{error}</p>
             <small>Make sure both the frontend and backend servers are running.</small>
           </div>
@@ -894,7 +732,7 @@ function App() {
         match={selectedMatch}
         currentPlayerPuuid={profileResult?.account?.puuid || ''}
       />
-    </>
+    </MantineProvider>
   )
 }
 
