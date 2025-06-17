@@ -21,7 +21,7 @@ alwaysApply: true
    * Run:
 
      ```bash
-     python userinput.py
+     python3 userinput.py
      ```
    * The terminal should be opened in the chat window itself.
 

@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+We should never use emojis unless we've exhausted all other options.
+Use tabler icons in this project as we have that package as a dependency.
